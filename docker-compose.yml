@@ -27,8 +27,10 @@ services:
       - react-frontend
   db:
     image: postgres:15
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydatabase
-
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d

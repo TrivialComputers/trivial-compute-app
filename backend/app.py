@@ -30,6 +30,49 @@ def get_db_version():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/messages', methods=['POST'])
+def insert_message():
+    data = request.get_json()
+    message = data.get('message')
+
+    if not message:
+        return jsonify({"error": "Missing 'message' field"}), 400
+
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO messages (content, created_at)
+            VALUES (%s, %s)
+            RETURNING id;
+        """, (message, datetime.now()))
+        message_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"id": message_id, "message": message}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/messages', methods=['GET'])
+def get_messages():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute("SELECT id, content, created_at FROM messages ORDER BY id DESC")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        messages = [
+            {"id": row[0], "message": row[1], "timestamp": row[2].isoformat()}
+            for row in rows
+        ]
+
+        return jsonify(messages)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500  
+
 @app.route('/api/db/uptime', methods=['GET'])
 def get_db_uptime():
     try:
