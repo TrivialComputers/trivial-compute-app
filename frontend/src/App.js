@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-
 function App() {
   const [flask_msg, setFlaskMsg] = useState('');
 
   useEffect(() => {
-    fetch('/api/flask_test')
+    fetch('/api/version')
       .then(res => res.json())
       .then(data => setFlaskMsg(data.message));
   }, []);
@@ -13,7 +12,7 @@ function App() {
   const [db_msg, setDbMsg] = useState('');
 
   useEffect(() => {
-    fetch('/api/db_test')
+    fetch('/api/db/version')
       .then(res => res.json())
       .then(data => setDbMsg(data.version));
   }, []);
@@ -21,8 +20,9 @@ function App() {
   return (
     <div style={{ padding: '2rem' }}>
       <h1>Trivial Computers Testing Page</h1>
-      <p>Flask Test says: {flask_msg}</p>
-      <p>Postgresql Version: {db_msg}</p>
+      <p>&#9989; Frontend UI Subsystem: React Version       = {React.version}</p>
+      <p>&#9989; Backend API Subsystem: Flask Version       = {flask_msg}</p>
+      <p>&#9989; Database Subsystem:    Postgresql Version  = {db_msg}</p>
     </div>
   );
 }

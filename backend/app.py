@@ -1,16 +1,17 @@
 from flask import Flask, jsonify, request
 import os
 import psycopg2
+import importlib.metadata
 
 app = Flask(__name__)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-@app.route('/api/flask_test', methods=['GET'])
+@app.route('/api/version', methods=['GET'])
 def test_flask_api():
-    return jsonify(message="Hello from Flask API")
+    return jsonify(message=importlib.metadata.version("flask"))
 
-@app.route('/api/db_test')
+@app.route('/api/db/version', methods=['GET'])
 def hello():
     try:
         conn = psycopg2.connect(DATABASE_URL)
