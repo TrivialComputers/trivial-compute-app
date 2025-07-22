@@ -1,0 +1,99 @@
+@startuml
+class Game {
+    -board: Board
+    -gameId: String
+    -gameName: String
+    -gameState: String
+    -createdTimestamp: DateTime
+    -startedTimestamp: DateTime
+    -currentPlayer: Player
+    -players: Player []
+    -isPrivate: Boolean
+    -gameCode: String
+    -questionRepo: QuestionRepository
+
+    +addPlayer(Player player): Boolean
+    +askQuestion(Square square): Question
+    +checkAnswer(Question question, String answer): Boolean
+    +nextPlayer(): Player
+    +createGame(Player hostPlayer): Game
+    +endGame(): GameResult
+    +getCurrentPlayer(): Player
+    +getGameStatus(): String
+    +isGameComplete(): Boolean
+    +removePlayer(Player player): Boolean
+    +startGame(): Boolean
+    +rollDie(): int
+}
+
+class Player {
+    -playerId: String
+    -playerName: String
+    -isHost: Boolean
+    -score: Integer
+    -chips: String []
+    -position: Square
+
+    +getPlayerId(): String
+    +getPlayerName(): String
+    +isHostPlayer(): Boolean
+    +awardChip(): String
+}
+
+class Board {
+      - squares: Square []
+      + getValidDestinations(Square currentSquare, int steps): Square []
+}
+
+abstract class Square {
+    - id: int
+    - type: SquareType
+}
+class CategorySquare extends Square {
+    -category: Category
+}
+class HeadquartersSquare extends Square {
+    -category: Category
+}
+class RollAgainSquare extends Square {}
+class CenterSquare extends Square {}
+
+class QuestionRepository {
+    -questions: dictionary<Category, Question []>
+    +getRandomQuestion(Category category): Question
+    +loadQuestion(): void
+    +saveQuestion(Question newQuestion): void
+}
+
+class Question {
+    -id: UUID
+    -text: String
+    -answer: String
+    -mediaUrl: URL?
+}
+
+enum Category {
+    SCIENCE
+    HISTORY
+    ART
+    SPORTS
+    ... // Other categories
+}
+
+enum GameStates {
+    WAITING
+    IN_PROGRESS
+    COMPLETED
+    CANCELED
+}
+
+Game "1" --* "1" Board
+Game "1" --* "*" Player
+Game "1" --> "1" QuestionRepository
+Game --> GameStates
+CategorySquare ..> Category
+HeadquartersSquare ..> Category
+QuestionRepository "1" --* "*" Question
+Board "1" --* "*" Square
+
+@enduml
