@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 
+RUN npm install @emotion/react @emotion/styled
+
 RUN npm install
 
 COPY . .

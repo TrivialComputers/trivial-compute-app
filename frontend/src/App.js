@@ -37,8 +37,25 @@ function App() {
   useEffect(() => {
     const count = parseInt(prompt('Enter number of players (1-4):'), 10) || 1;
     const names = [];
+    let gameCode = Math.floor(Math.random() * 1000);
+    const gameData = {count: count, gameCode: gameCode}
+    fetch('/api/game/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(gameData),
+    });
     for (let i = 0; i < count; i++) {
       names.push({ name: prompt(`Player ${i + 1} name:`) || `Player ${i + 1}`, position: Math.floor(board.length / 2), chips: [] });
+      const playerData = {username: names[i].name, position: names[i].position, game_id: gameCode};
+      fetch('/api/game/join', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(playerData),
+    });
     }
     setPlayers(names);
   }, [board]);
@@ -47,27 +64,44 @@ function App() {
 
   const movePlayer = (destIndex) => {
     const updated = [...players];
+    const sourceIndex = updated[currentPlayer].position;
     updated[currentPlayer].position = destIndex;
     setPlayers(updated);
+
+    const dataToPost = { sourceIndex, destIndex };
+
+    fetch('/api/move', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dataToPost),
+    });
     const cell = board[destIndex];
     if (cell?.category !== undefined) {
-      fetch(`/api/question?category=${cell.category}`)
+      fetch(`/api/question?category=${CATEGORIES[cell.category]}`)
         .then(res => res.json())
         .then(q => { setQuestion(q); setShowQuestion(true); });
     }
   };
 
-  const handleAnswer = (correct) => {
+  const handleAnswer = (answer) => {
     setShowQuestion(false);
-    if (correct) {
-      const pos = players[currentPlayer].position;
-      if (board[pos].type === 'headquarters') {
-        const updated = [...players];
-        updated[currentPlayer].chips.push(board[pos].category);
-        setPlayers(updated);
-      }
+    // if (correct) {
+    //   const pos = players[currentPlayer].position;
+    //   if (board[pos].type === 'headquarters') {
+    //     const updated = [...players];
+    //     updated[currentPlayer].chips.push(board[pos].category);
+    //     setPlayers(updated);
+    //   }
+    // } else {
+    //   setCurrentPlayer((currentPlayer + 1) % players.length);
+    // }
+    const isCorrect = answer.trim().toLowerCase() === question.question.answer.trim().toLowerCase();
+    if (isCorrect) {
+      alert("Correct!");
     } else {
-      setCurrentPlayer((currentPlayer + 1) % players.length);
+      alert("Incorrect!");
     }
   };
 
