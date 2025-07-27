@@ -1,0 +1,20 @@
+@startuml
+    participant Client
+    participant Game
+    participant Player
+
+    Client->>Game: submitAnswer(Answer)
+    Game->>Game: checkAnswer(Answer)
+    alt correct answer on Cat/HQ
+      Game->>Player: awardChip(category)
+      Player-->>Game: chipAwarded
+      note over Game, Player
+        Player gets an extra turn
+      end note
+      Game->>Game: rollDie()
+    else incorrect or no‐chip square
+      Game->>Game: nextPlayer()
+    end
+    Game-->>Client: Player nextPlayer
+    
+@enduml

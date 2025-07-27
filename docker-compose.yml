@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  flask-backend:
+    build: ./backend
+    container_name: flask-backend
+    ports:
+      - "5555:5555"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase
+
+  react-frontend:
+    build: ./frontend
+    container_name: react-frontend
+    ports:
+      - "3001:80"
+
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - flask-backend
+      - react-frontend
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydatabase
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mydatabase"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s

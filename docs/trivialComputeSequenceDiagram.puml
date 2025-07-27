@@ -1,0 +1,29 @@
+@startuml
+participant Client
+participant Game
+participant Board
+participant Player
+participant QuestionRepository
+
+Client->>Game: start()
+Game->>Game: startGame()
+
+loop each turn
+    Client->>Game: takeTurn()
+    Game->>Game: rollDie()
+    Game->>Board: getValidDestinations(currentPlayer, rollResult)
+    Board-->>Game: destinations[]
+    Game->>Player: moveTo(selectedDest)
+    Player-->>Game: newPosition
+
+    alt landed on RollAgain
+        Game->>Game: rollDie()   // immediate extra roll
+    else landed on question square
+        Game->>QuestionRepository: getRandomQuestion(categoryOf(selectedDest))
+        QuestionRepository-->>Game: Question
+        Game->>Client: displayQuestion(Question)
+        Client->>Game: submitAnswer(Answer)
+        Game->>Game: checkAnswer(Answer)
+    end
+end
+@enduml
