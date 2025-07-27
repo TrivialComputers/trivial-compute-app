@@ -25,16 +25,14 @@ class Player(db.Model):
     id = db.Column(Integer, primary_key=True)
     username = db.Column(db.String, unique=True, nullable=False)
     host = db.Column(db.Boolean, nullable=False)
-    gameCode = db.Column(db.Integer, ForeignKey('game.game_code'), nullable=False)
-    position = db.Column(db.Integer, nullable=False)
+    game_id = db.Column(db.Integer, ForeignKey('game.id'), nullable=False)
 
     def to_json(self):
         return {
             'id': self.id,
             'username': self.username,
             'host': self.host,
-            'gameCode': self.gameCode,
-            'position': self.position
+            'gameId': self.game_id
         }
 
 
@@ -61,4 +59,22 @@ class Game(db.Model):
             'playerCount': self.player_count,
             'status': self.status,
             'players': [player.to_json() for player in self.players]
+        }
+
+class Player(db.Model):
+    __tablename__ = 'player'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String, unique=True, nullable=False)
+    host = db.Column(db.Boolean, nullable=False, default=False)
+    game_id = db.Column(db.Integer, ForeignKey('game.id'), nullable=False)
+    position = db.Column(db.Integer, nullable=False)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'host': self.host,
+            'gameId': self.game_id
+            'position': self.position
         }

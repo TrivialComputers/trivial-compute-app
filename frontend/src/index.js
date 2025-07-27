@@ -3,17 +3,16 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App';
 import QuestionEditor from './components/QuestionEditor/QuestionEditor';
-import JoinGame from './components/SignIn/JoinGame';
-import Register from './components/SignIn/NewGame';
+import SignIn from './components/SignIn/SignIn';
 import './index.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<App />} />
+      <Route path="/" element={<SignIn />} />
       <Route path="/editor" element={<QuestionEditor />} />
-      <Route path="/joinGame" element={<JoinGame/>} />
+      <Route path="/game:id" element={<App />} />
     </Routes>
   </BrowserRouter>
 );

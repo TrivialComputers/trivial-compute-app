@@ -110,9 +110,9 @@ function App() {
       <header>
         <h1>Trivial Compute</h1>
         <nav>
-          <Link to="/">Game</Link>
+          <Link to="/">Sign In</Link>
           <Link to="/editor">Question Editor</Link>
-          <Link to="/joinGame">Join Game</Link>
+          <Link to="/yourGame">Game</Link>
         </nav>
       </header>
       <StatusBar players={players} current={currentPlayer} colors={COLORS} />

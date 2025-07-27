@@ -1,24 +1,20 @@
 import React from "react";
 import { useState } from "react";
 import "../../index.css";
+import { TextField, Button, Stack, Box } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 export default function JoinGame() {
-    const [formData, setFormData] = useState({game_id: '', username: ''});
+    const [username, setUsername] = useState("");
+    const [gameCode, setGameCode] = useState("");
+    const navigate = useNavigate();
 
-    const handleChange = (event) => {
-        const { name, value } = event.target;
-        setFormData({
-        ...formData,
-        [name]: value
-        });
-    };
-
-    const handleSubmit = (event) => {
-        event.preventDefault();
+    const joinExistingGame = (e) => {
+        e.preventDefault();
         // Include gameId in the data to be sent
-        const dataToPost = { ...formData, "host": false };
+        const dataToPost = { username, gameCode };
 
-        fetch('/api/game', {
+        fetch('/api/join_game', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -28,31 +24,36 @@ export default function JoinGame() {
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
+            navigate(data.redirect_url);
         })
         .catch(error => console.error('Error posting data:', error));
     };
 
     return (
         <>
-            <h2>Join Game</h2>
-
-            <form className="join-game-form" onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    name="username"
-                    value={formData.username}
-                    placeholder="Username"
-                    onChange={handleChange}
-                />
-                <input
-                    type="text"
-                    name="game_id"
-                    value={formData.game_id}
-                    placeholder="Game ID"
-                    onChange={handleChange}
-                />
-                <input type="submit" style={{ backgroundColor: "#a1eafb" }} />
-            </form>
+            <Stack direction="row" spacing={2} sx={{ margin: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                    <TextField
+                    required
+                    id="username"
+                    label="Username"
+                    fullWidth
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                    <TextField
+                    required
+                    id="gameCode"
+                    label="Game Code"
+                    fullWidth
+                    value={gameCode}
+                    onChange={(e) => setGameCode(e.target.value)}
+                    />
+                </Box>
+                <Button variant="outlined" onClick={e => joinExistingGame(e)} >Submit</Button>
+            </Stack>
         </>
     );
 }

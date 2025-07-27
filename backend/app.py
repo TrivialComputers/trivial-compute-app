@@ -7,49 +7,65 @@ import random
 
 flask_start_time = datetime.now()
 
-@app.route('/api/game/join', methods=['POST'])
+@app.route('/api/create_game', methods=['POST'])
+def create_game():
+    username = request.json.get('username')
+    if not username:
+        return (jsonify({"message": "Missing username"}), 400)
+    
+    new_game = Game(
+        game_code=int(random() * 1000),  # Random game code for simplicity
+        player_count=1,
+        status=Game.STATUS.CREATED
+    )
+
+    new_player = Player(
+        username=username,
+        host=True,
+        game_id=new_game.id
+    )
+
+    try:
+        new_game.players.append(new_player)
+        db.session.add(new_game)
+        db.session.add(new_player)
+        db.session.commit()
+        redirect_url = f'/editor'
+        return jsonify({'status': 'success', 'redirect_url': redirect_url}), 201
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+    
+@app.route('/api/join_game', methods=['POST'])
 def create_player_join_game():
     data = request.get_json()
-    game_id = data.get('game_id')
+    game_code = data.get('gameCode')
     username = data.get('username')    
     position = data.get('position')
 
     try:
-        game = Game.query.filter_by(game_code=game_id).first()
-        if not game:
+        existing_game = Game.query.get(game_code)
+        if not existing_game:
             return jsonify({"error": "Game not found"}), 404
         
-        player = Player(
+        new_player = Player(
             username=username,
-            id=random.randint(1000, 9999),
             host=False,
-            gameCode=game_id,
-            position=position
+            game_id=existing_game.id
         )
-        if not player:
-            return jsonify({"error": "Missing information for player"}), 400
         
-        db.session.add(player)
+        if existing_game.player_count >= 4:
+            return jsonify({"error": "Game is full"}), 400
+        if existing_game.status != Game.STATUS.CREATED:
+            return jsonify({"error": "Game has already started"}), 400
+        for player in existing_game.players:
+            if player.username == username:
+                return jsonify({"error": "Username already taken"}), 400
+        existing_game.players.append(new_player)
+        existing_game.player_count += 1
+        db.session.add(new_player)
         db.session.commit()
-        return jsonify({"message": "Created user"}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/game/create', methods=['POST'])
-def create_game():
-    data = request.get_json()
-    playerCount = data.get('count')
-    gameCode = data.get('gameCode')
-    try:
-        game = Game(
-            id=gameCode,
-            game_code=gameCode,
-            player_count=playerCount,
-            date=datetime.now()
-        )
-        db.session.add(game)
-        db.session.commit()
-        return jsonify({"message": f"Game created with code {gameCode}"}), 201
+        redirect_url = f'/game/{existing_game.id}'
+        return jsonify({'status': 'success', 'redirect_url': redirect_url}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -128,6 +144,46 @@ def get_question_by_category():
             return jsonify({"question": json_question}), 201
         else:
             return jsonify({"error": f"No questions found for category={category}"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/player', methods=['GET'])
+def get_players():
+    try:
+        players = Player.query.all()
+        json_players = list(map(lambda p: p.to_json(), players))
+        return jsonify({"players": json_players})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/game', methods=['GET'])
+def get_games():
+    try:
+        games = Game.query.all()
+        json_games = list(map(lambda g: g.to_json(), games))
+        return jsonify({"games": json_games})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/player', methods=['GET'])
+def get_players():
+    try:
+        players = Player.query.all()
+        json_players = list(map(lambda p: p.to_json(), players))
+        return jsonify({"players": json_players})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/game', methods=['GET'])
+def get_games():
+    try:
+        games = Game.query.all()
+        json_games = list(map(lambda g: g.to_json(), games))
+        return jsonify({"games": json_games})
+    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

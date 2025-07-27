@@ -1,59 +1,48 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import "../../index.css";
+import { TextField, Button, Stack, Box } from "@mui/material";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-function Register() {
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-    } = useForm();
+export default function NewGame() {
+    const [username, setUsername] = useState("");
+    const navigate = useNavigate();
 
-    const onSubmit = (data) => {
-        const existingUser = JSON.parse(localStorage.getItem(data.username));
-        if (existingUser) {
-            console.log("Username is already registered!");
-        } else {
-            const userData = {
-                name: data.name,
-                username: data.username,
-                password: data.password,
-            };
-            localStorage.setItem(data.username, JSON.stringify(userData));
-            console.log(data.name + " has been successfully registered");
-        }
-    };
+    const createGame = (e) => {
+        e.preventDefault();
+        const dataToPost = { username };
+
+        fetch('/api/create_game', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToPost),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            navigate(data.redirect_url); 
+        })
+        .catch(error => console.error('Error posting data:', error));
+    }
 
     return (
         <>
-            <h2>Registration Form</h2>
-
-            <form className="sign-in-form" onSubmit={handleSubmit(onSubmit)}>
-                <input
-                    type="text"
-                    {...register("name", { required: true })}
-                    placeholder="Name"
-                />
-                {errors.name && <span style={{ color: "red" }}>*Name* is mandatory</span>}
-
-                <input
-                    type="username"
-                    {...register("username", { required: true })}
-                    placeholder="Username"
-                />
-                {errors.username && <span style={{ color: "red" }}>*Username* is mandatory</span>}
-
-                <input
-                    type="password"
-                    {...register("password", { required: true })}
-                    placeholder="Password"
-                />
-                {errors.password && <span style={{ color: "red" }}>*Password* is mandatory</span>}
-
-                <input type="submit" style={{ backgroundColor: "#a1eafb" }} />
-            </form>
+            <Stack direction="row" spacing={2} sx={{ margin: 2 }}>
+                <Box sx={{ flex: 1.5 }}>
+                    <TextField
+                        required
+                        id="username"
+                        label="Username"
+                        fullWidth
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                    />
+                </Box>
+                <Button variant="outlined" onClick={e => createGame(e)} >Create Game</Button>
+            </Stack>
         </>
     );
 }
-
-export default Register;
