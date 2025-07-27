@@ -9,18 +9,20 @@ DC := docker-compose
 
 .PHONY: all backend frontend build up down clean
 
-# Default target: set up and start dev environment\ nall: install-backend install-frontend up
+# Default target: set up and start dev environment
+all: 
+	make install-backend \
+	&& make install-frontend \
+	&& make up
 
 # 1. Set up backend: create venv and install requirements
-install-backend: $(VENV_DIR)/bin/activate
-$(VENV_DIR)/bin/activate: $(BACKEND_DIR)/requirements.txt
+install-backend: 
 	@echo "Setting up backend virtualenv..."
 	cd $(BACKEND_DIR) \
 	&& $(PYTHON) -m venv .venv \
 	&& . .venv/bin/activate \
 	&& pip install --upgrade pip setuptools \
-	&& pip install -r requirements.txt \
-	&& touch $(VENV_DIR)/bin/activate
+	&& pip install -r requirements.txt
 	@echo "Backend ready."
 
 # 2. Install frontend dependencies
@@ -36,15 +38,17 @@ build:
 	$(DC) build --parallel
 
 # 4. Bring up services\ nup: build
+up:
 	@echo "Starting services with docker-compose..."
-	$(DC) up
+	$(DC) up --build
 
 # 5. Stop services
 down:
 	@echo "Stopping services..."
 	$(DC) down
 
-# 6. Clean all generated files (venv, node_modules, docker)\ clean:
+# 6. Clean all generated files (venv, node_modules, docker) 
+clean:
 	@echo "Cleaning workspace..."
 	-rm -rf $(VENV_DIR)
 	-rm -rf $(FRONTEND_DIR)/node_modules

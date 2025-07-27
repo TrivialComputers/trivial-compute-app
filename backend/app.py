@@ -1,90 +1,83 @@
+from models import Game, Player, Question
+from config import app, db
 from flask import Flask, jsonify, request
 import os
-import psycopg2
 from datetime import datetime
-import importlib.metadata
+from random import random
 
-app = Flask(__name__)
 flask_start_time = datetime.now()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-@app.route('/api/version', methods=['GET'])
-def get_flask_version():
-    return jsonify(message=importlib.metadata.version("flask"))
-
-@app.route('/api/uptime', methods=['GET'])
-def get_test_flask_api():
-    return jsonify({"uptime": f"[+] Flask Uptime = {str(datetime.now() - flask_start_time)}"})
-
-@app.route('/api/db/version', methods=['GET'])
-def get_db_version():
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        cur.execute("SELECT version();")
-        version = cur.fetchone()
-        cur.close()
-        conn.close()
-        return jsonify({'version': version[0]})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/messages', methods=['POST'])
-def insert_message():
+@app.route('/api/game/join', methods=['POST'])
+def create_player_join_game():
     data = request.get_json()
-    message = data.get('message')
-
-    if not message:
-        return jsonify({"error": "Missing 'message' field"}), 400
+    game_id = data.get('game_id')
+    username = data.get('username')    
 
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO messages (content, created_at)
-            VALUES (%s, %s)
-            RETURNING id;
-        """, (message, datetime.now()))
-        message_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({"id": message_id, "message": message}), 201
+        game = Game.query.filter_by(game_code=game_id).first()
+        if not game:
+            return jsonify({"error": "Game not found"}), 404
+        
+        player = Player(
+            username=username,
+            player_id=random.randint(1000, 9999),
+            host=False,
+            game_code=game_id
+        )
+        if not player:
+            return jsonify({"error": "Missing information for player"}), 400
+        
+        game.session.add(player)
+        db.session.commit()
+        return jsonify({"id": game}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/messages', methods=['GET'])
-def get_messages():
+@app.route('/api/create_question', methods=['POST'])
+def create_question():
+    question = request.json.get('question')
+    answer = request.json.get('answer')
+    category = request.json.get('category')
+    if not question or not answer or not category:
+        return (jsonify({"message": "Missing question, answer, or category"}), 400)
+    
+    new_question = Question(
+        question=question,
+        answer=answer,
+        category=category
+    )
+
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        cur.execute("SELECT id, content, created_at FROM messages ORDER BY id DESC")
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
+        db.session.add(new_question)
+        db.session.commit()
+    except Exception as e:
+        return jsonify({"message": str(e)}), 400
+    
+    return jsonify({"message": "Question created successfully"}), 201
+    
+@app.route('/api/get_question/<int:question_id>', methods=['PATCH'])
+def get_question_by_id(question_id):
+    try:
+        question = Question.query.get(question_id)
+        json_question = map(lambda q: q.to_json(), question)
 
-        messages = [
-            {"id": row[0], "message": row[1], "timestamp": row[2].isoformat()}
-            for row in rows
-        ]
+        return jsonify({"question": json_question}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-        return jsonify(messages)
+
+@app.route('/api/questions', methods=['GET'])
+def get_questions():
+    try:
+        questions = Question.query.all()
+        json_questions = list(map(lambda q: q.to_json(), questions))
+        return jsonify({"questions": json_questions})
+    
     except Exception as e:
         return jsonify({"error": str(e)}), 500  
 
-@app.route('/api/db/uptime', methods=['GET'])
-def get_db_uptime():
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        cur.execute("SELECT now() - pg_postmaster_start_time() AS uptime;")
-        uptime = cur.fetchone()[0]
-        cur.close()
-        conn.close()
-        return jsonify({'uptime': f"[+] Posgresql Uptime = {str(uptime)}"})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5555)
+    with app.app_context():
+        db.create_all()
+
+    app.run(host='0.0.0.0', port=5555, debug=True)

@@ -1,139 +1,90 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import Board from './components/Game/Board';
+import StatusBar from './components/Game/StatusBar';
+import QuestionModal from './components/Game/QuestionModal';
+import Dice from './components/Game/Dice';
+
+const BOARD_SIZE = 9;
+const CATEGORIES = ['History', 'Science', 'Arts', 'Sports'];
+const COLORS = ['#e74c3c', '#3498db', '#9b59b6', '#2ecc71'];
+
+const generateBoard = () => {
+  const total = 45;
+  const board = Array(total).fill(null);
+  board[Math.floor(total / 2)] = { type: 'center' };
+  for (let i = 0; i < 4; i++) {
+    const offset = i * BOARD_SIZE;
+    for (let j = 1; j < BOARD_SIZE; j++) {
+      board[offset + j] = {
+        type: j === BOARD_SIZE - 1 ? 'headquarters' : 'path',
+        category: i,
+        color: COLORS[i],
+      };
+    }
+  }
+  return board;
+};
 
 function App() {
-  const [flask_msg, setFlaskMsg] = useState('');
-  const [db_msg, setDbMsg] = useState('');
-  const [response, setResponse] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const [flaskResponse, setFlaskResponse] = useState('');
-  const [dbResponse, setDbResponse] = useState('');
-
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [status, setStatus] = useState('');
+  const [board] = useState(generateBoard());
+  const [players, setPlayers] = useState([]);
+  const [currentPlayer, setCurrentPlayer] = useState(0);
+  const [dice, setDice] = useState(1);
+  const [showQuestion, setShowQuestion] = useState(false);
+  const [question, setQuestion] = useState(null);
 
   useEffect(() => {
-    fetch('/api/version')
-      .then(res => res.json())
-      .then(data => setFlaskMsg(data.message))
-      .catch(err => console.error('Error fetching Flask version:', err));
-  }, []);
+    const count = parseInt(prompt('Enter number of players (1-4):'), 10) || 1;
+    const names = [];
+    for (let i = 0; i < count; i++) {
+      names.push({ name: prompt(`Player ${i + 1} name:`) || `Player ${i + 1}`, position: Math.floor(board.length / 2), chips: [] });
+    }
+    setPlayers(names);
+  }, [board]);
 
-  useEffect(() => {
-    fetch('/api/db/version')
-      .then(res => res.json())
-      .then(data => setDbMsg(data.version))
-      .catch(err => console.error('Error fetching DB version:', err));
-  }, []);
+  const rollDice = () => setDice(Math.floor(Math.random() * 6) + 1);
 
-  const handleFlaskTestApiCall = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/uptime');
-      const data = await res.json();
-      setFlaskResponse(data.uptime);
-    } catch (err) {
-      console.error(err);
-      setFlaskResponse('Error connecting to /api/uptime of Flask endpoint');
-    } finally {
-      setLoading(false);
+  const movePlayer = (destIndex) => {
+    const updated = [...players];
+    updated[currentPlayer].position = destIndex;
+    setPlayers(updated);
+    const cell = board[destIndex];
+    if (cell?.category !== undefined) {
+      fetch(`/api/question?category=${cell.category}`)
+        .then(res => res.json())
+        .then(q => { setQuestion(q); setShowQuestion(true); });
     }
   };
 
-  const handleDbTestApiCall = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/db/uptime');
-      const data = await res.json();
-      setDbResponse(data.uptime);
-    } catch (err) {
-      console.error(err);
-      setDbResponse('Error connecting to /api/db/test of Flask endpoint');
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchMessages = async () => {
-    try {
-      const res = await fetch('/api/messages');
-      const data = await res.json();
-      setMessages(data);
-    } catch (err) {
-      console.error('Failed to fetch messages:', err);
-      setStatus('Error fetching messages');
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus('Sending...');
-
-    try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setStatus('Message sent!');
-        setMessage('');
-        fetchMessages(); // refresh the list
-      } else {
-        setStatus(data.error || 'Failed to send message');
+  const handleAnswer = (correct) => {
+    setShowQuestion(false);
+    if (correct) {
+      const pos = players[currentPlayer].position;
+      if (board[pos].type === 'headquarters') {
+        const updated = [...players];
+        updated[currentPlayer].chips.push(board[pos].category);
+        setPlayers(updated);
       }
-    } catch (err) {
-      console.error('Failed to send message:', err);
-      setStatus('Error sending message');
+    } else {
+      setCurrentPlayer((currentPlayer + 1) % players.length);
     }
   };
-
-  useEffect(() => {
-    fetchMessages();
-  }, []);
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Trivial Computers Testing Page</h1>
-      <h2>&#9989; Frontend UI Subsystem: </h2>
-      <p>React Version       = {React.version}</p>
-      <h2>&#9989; Backend API Subsystem: </h2>
-      <p>Flask Version       = {flask_msg}</p>
-      <button onClick={handleFlaskTestApiCall} disabled={loading}>
-        {loading ? 'Loading...' : 'Query Flask Uptime'}
-      </button>
-      <p>{flaskResponse}</p>
-      <h2>&#9989; Database Subsystem:</h2>
-      <p>Postgresql Version  = {db_msg}</p>
-      <button onClick={handleDbTestApiCall} disabled={loading}>
-        {loading ? 'Loading...' : 'Query Database Uptime'}
-      </button>
-      <p>{dbResponse}</p>
-      <p>Send Message to Database</p>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          style={{ padding: '0.5rem', width: '60%' }}
-        />
-        <button type="submit" style={{ marginLeft: '1rem', padding: '0.5rem 1rem' }}>
-          Send
-        </button>
-      </form>
-      <p>Database Messages</p>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {messages.map((msg) => (
-          <li key={msg.id} style={{ borderBottom: '1px solid #ccc', padding: '0.5rem 0' }}>
-            <strong>#{msg.id}</strong>: {msg.message}
-            <br />
-            <small style={{ color: 'gray' }}>{new Date(msg.timestamp).toLocaleString()}</small>
-          </li>
-        ))}
-      </ul>
+    <div className="app-container">
+      <header>
+        <h1>Trivial Compute</h1>
+        <nav>
+          <Link to="/">Game</Link>
+          <Link to="/editor">Question Editor</Link>
+          <Link to="/joinGame">Join Game</Link>
+        </nav>
+      </header>
+      <StatusBar players={players} current={currentPlayer} colors={COLORS} />
+      <Board board={board} players={players} colors={COLORS} onCellClick={movePlayer} />
+      <Dice dice={dice} onRoll={rollDice} />
+      {showQuestion && <QuestionModal question={question} onAnswer={handleAnswer} />}
     </div>
   );
 }
