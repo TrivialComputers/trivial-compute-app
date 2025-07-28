@@ -14,7 +14,7 @@ def create_game():
         return (jsonify({"message": "Missing username"}), 400)
     
     new_game = Game(
-        game_code=int(random() * 1000),  # Random game code for simplicity
+        game_code=int(random.randint(1,1000) * 1000),  # Random game code for simplicity
         player_count=1,
         status=Game.STATUS.CREATED
     )
@@ -22,7 +22,8 @@ def create_game():
     new_player = Player(
         username=username,
         host=True,
-        game_id=new_game.id
+        game_id=new_game.id,
+        position=0
     )
 
     try:
@@ -50,7 +51,8 @@ def create_player_join_game():
         new_player = Player(
             username=username,
             host=False,
-            game_id=existing_game.id
+            game_id=existing_game.id,
+            position=0
         )
         
         if existing_game.player_count >= 4:
@@ -144,26 +146,6 @@ def get_question_by_category():
             return jsonify({"question": json_question}), 201
         else:
             return jsonify({"error": f"No questions found for category={category}"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/player', methods=['GET'])
-def get_players():
-    try:
-        players = Player.query.all()
-        json_players = list(map(lambda p: p.to_json(), players))
-        return jsonify({"players": json_players})
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/game', methods=['GET'])
-def get_games():
-    try:
-        games = Game.query.all()
-        json_games = list(map(lambda g: g.to_json(), games))
-        return jsonify({"games": json_games})
-    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
