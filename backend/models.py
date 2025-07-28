@@ -19,23 +19,6 @@ class Question(db.Model):
             'category': self.category
         }
 
-class Player(db.Model):
-    __tablename__ = 'player'
-
-    id = db.Column(Integer, primary_key=True)
-    username = db.Column(db.String, unique=True, nullable=False)
-    host = db.Column(db.Boolean, nullable=False)
-    game_id = db.Column(db.Integer, ForeignKey('game.id'), nullable=False)
-
-    def to_json(self):
-        return {
-            'id': self.id,
-            'username': self.username,
-            'host': self.host,
-            'gameId': self.game_id
-        }
-
-
 class Game(db.Model):
     __tablename__ = 'game'
 
@@ -75,6 +58,6 @@ class Player(db.Model):
             'id': self.id,
             'username': self.username,
             'host': self.host,
-            'gameId': self.game_id
+            'gameId': self.game_id,
             'position': self.position
         }
