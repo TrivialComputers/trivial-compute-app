@@ -12,7 +12,7 @@ root.render(
     <Routes>
       <Route path="/" element={<SignIn />} />
       <Route path="/editor" element={<QuestionEditor />} />
-      <Route path="/game:id" element={<App />} />
+      <Route path="/game/:id" element={<App />} />
     </Routes>
   </BrowserRouter>
 );

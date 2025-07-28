@@ -22,6 +22,7 @@ export default function NewGame() {
         })
         .then(response => response.json())
         .then(data => {
+            alert("Game Code = " + data.game_code)
             console.log('Success:', data);
             navigate(data.redirect_url); 
         })

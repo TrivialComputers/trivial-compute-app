@@ -23,7 +23,7 @@ def create_game():
         username=username,
         host=True,
         game_id=new_game.id,
-        position=0
+        position=4
     )
 
     try:
@@ -32,10 +32,23 @@ def create_game():
         db.session.add(new_player)
         db.session.commit()
         redirect_url = f'/editor'
-        return jsonify({'status': 'success', 'redirect_url': redirect_url}), 201
+        return jsonify({'status': 'success', 'redirect_url': redirect_url, 'game_code': new_game.game_code}), 201
     except Exception as e:
         return jsonify({"message": str(e)}), 400
     
+@app.route('/api/get_players', methods=['GET'])
+def get_players_for_game():
+    game_id = request.args['gameId']
+    playerNameList = []
+    try:
+        existing_game = Game.query.filter_by(id=game_id).first()
+        if not existing_game:
+            return jsonify({"error": "Game not found"}), 404
+        for player in existing_game.players:
+            playerNameList.append(player.username)
+        return jsonify(playerNameList), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 @app.route('/api/join_game', methods=['POST'])
 def create_player_join_game():
     data = request.get_json()
@@ -44,7 +57,7 @@ def create_player_join_game():
     position = data.get('position')
 
     try:
-        existing_game = Game.query.get(game_code)
+        existing_game = Game.query.filter_by(game_code=game_code).first()
         if not existing_game:
             return jsonify({"error": "Game not found"}), 404
         

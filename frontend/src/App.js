@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Board from './components/Game/Board';
-import StatusBar from './components/Game/StatusBar';
+// import StatusBar from './components/Game/StatusBar';
 import QuestionModal from './components/Game/QuestionModal';
 import Dice from './components/Game/Dice';
 
@@ -10,19 +10,24 @@ const CATEGORIES = ['History', 'Science', 'Arts', 'Sports'];
 const COLORS = ['#e74c3c', '#3498db', '#9b59b6', '#2ecc71'];
 
 const generateBoard = () => {
-  const total = 45;
+  const total = 81;
   const board = Array(total).fill(null);
-  board[Math.floor(total / 2)] = { type: 'center' };
-  for (let i = 0; i < 4; i++) {
-    const offset = i * BOARD_SIZE;
-    for (let j = 1; j < BOARD_SIZE; j++) {
-      board[offset + j] = {
-        type: j === BOARD_SIZE - 1 ? 'headquarters' : 'path',
-        category: i,
-        color: COLORS[i],
-      };
-    }
-  }
+  
+  const centerPosition = 40;
+  const hqPositions = [4, 36, 44, 76];
+  const excluded = [0, 4, 8, 36, 44, 72, 76, 80];
+  const qPositions = Array.from({ length: 81 }, (_, i) => i + 1)
+  .filter(n => !excluded.includes(n));
+  board[centerPosition] = { type: 'center' };
+  
+  hqPositions.forEach((pos, index) => {
+    board[pos] = { type: 'headquarters', category: index, color: COLORS[index] };
+  });
+  
+  qPositions.forEach((pos, index) => {
+    board[pos] = { type: 'question', category: index % 4, color: COLORS[index % 4] };
+  });
+
   return board;
 };
 
@@ -35,28 +40,22 @@ function App() {
   const [question, setQuestion] = useState(null);
 
   useEffect(() => {
-    const count = parseInt(prompt('Enter number of players (1-4):'), 10) || 1;
     const names = [];
-    let gameCode = Math.floor(Math.random() * 1000);
-    const gameData = {count: count, gameCode: gameCode}
-    fetch('/api/game/create', {
-      method: 'POST',
+    const gameId = window.location.pathname.split('/').filter(Boolean).pop();
+
+    fetch(`/api/get_players?gameId=${gameId}`, {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(gameData),
-    });
-    for (let i = 0; i < count; i++) {
-      names.push({ name: prompt(`Player ${i + 1} name:`) || `Player ${i + 1}`, position: Math.floor(board.length / 2), chips: [] });
-      const playerData = {username: names[i].name, position: names[i].position, game_id: gameCode};
-      fetch('/api/game/join', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(playerData),
-    });
-    }
+    })
+      .then(res => res.json())
+      .then(data => {
+        names.push(...data);
+        console.log(names);
+      })
+      .catch(err => console.error('Error fetching players:', err));
+    
+    names.push({ name: "testUser", position: 4, chips: [] })
     setPlayers(names);
   }, [board]);
 
@@ -77,6 +76,7 @@ function App() {
       },
       body: JSON.stringify(dataToPost),
     });
+    
     const cell = board[destIndex];
     if (cell?.category !== undefined) {
       fetch(`/api/question?category=${CATEGORIES[cell.category]}`)
@@ -87,16 +87,6 @@ function App() {
 
   const handleAnswer = (answer) => {
     setShowQuestion(false);
-    // if (correct) {
-    //   const pos = players[currentPlayer].position;
-    //   if (board[pos].type === 'headquarters') {
-    //     const updated = [...players];
-    //     updated[currentPlayer].chips.push(board[pos].category);
-    //     setPlayers(updated);
-    //   }
-    // } else {
-    //   setCurrentPlayer((currentPlayer + 1) % players.length);
-    // }
     const isCorrect = answer.trim().toLowerCase() === question.question.answer.trim().toLowerCase();
     if (isCorrect) {
       alert("Correct!");
@@ -115,7 +105,6 @@ function App() {
           <Link to="/yourGame">Game</Link>
         </nav>
       </header>
-      <StatusBar players={players} current={currentPlayer} colors={COLORS} />
       <Board board={board} players={players} colors={COLORS} onCellClick={movePlayer} />
       <Dice dice={dice} onRoll={rollDice} />
       {showQuestion && <QuestionModal question={question} onAnswer={handleAnswer} />}
