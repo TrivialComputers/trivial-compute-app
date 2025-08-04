@@ -116,14 +116,31 @@ def get_question_by_id(question_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+def move_validate_helper(source, dest, diceRoll):
+    source_col = source % 9
+    dest_col = dest % 9 
+
+    source_row = source // 9
+    dest_row = dest // 9
+
+    manhattan_distance = abs(dest_row - source_row) + abs(dest_col - source_col)
+
+    if dest not in [10, 11, 12, 14, 15, 16, 19, 20, 21, 23, 24, 25, 28, 29, 30, 31, 32, 33, 46, 47, 48, 50, 51, 52, 55, 56, 57, 59, 60, 61, 64, 65, 66, 68, 69, 70] and manhattan_distance == diceRoll:
+        return True
+    else:
+        return False
+        
+
 @app.route('/api/move', methods=['POST'])
 def validate_move():
     data = request.get_json()
+    
     if not data:
         return jsonify({"error": "Invalid or missing JSON"}), 400
 
     source = data.get('sourceIndex')
     dest = data.get('destIndex')
+    diceRoll = int(data.get("dice"))
 
     if source is None or dest is None:
         return jsonify({"error": "Missing sourceIndex or destIndex"}), 400
@@ -132,17 +149,20 @@ def validate_move():
         source = int(source)
         dest = int(dest)
 
-        player = Player.query.filter_by(position=source).first()
-        if not player:
-            return jsonify({"error": "No player found at source position"}), 404
+        if (move_validate_helper(source, dest, diceRoll) == True):            
+            player = Player.query.filter_by(position=source).first()
+            if not player:
+                return jsonify({"error": "No player found at source position"}), 404
 
-        if Player.query.filter_by(position=dest).first():
-            return jsonify({"error": "Player already in destination position"}), 409
+            if Player.query.filter_by(position=dest).first():
+                return jsonify({"error": "Player already in destination position"}), 409
 
-        player.position = dest
-        db.session.commit()
+            player.position = dest
+            db.session.commit()
 
-        return jsonify({"message": "Moved successfully"}), 201
+            return jsonify({"message": "Moved successfully"}), 201
+        else:
+            return jsonify({"message": "Invalid move"})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -67,7 +67,7 @@ function App() {
     updated[currentPlayer].position = destIndex;
     setPlayers(updated);
 
-    const dataToPost = { sourceIndex, destIndex };
+    const dataToPost = { sourceIndex, destIndex, dice };
 
     fetch('/api/move', {
       method: 'POST',
