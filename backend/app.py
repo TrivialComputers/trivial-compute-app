@@ -35,7 +35,18 @@ def create_game():
         return jsonify({'status': 'success', 'redirect_url': redirect_url, 'game_code': new_game.game_code}), 201
     except Exception as e:
         return jsonify({"message": str(e)}), 400
-    
+
+@app.route('/api/get_game_state', methods=['GET'])
+def get_game_state():
+    game_id = request.args['gameId']
+    try:
+        existing_game = Game.query.filter_by(id=game_id).first()
+        if not existing_game:
+            return jsonify({"error": "Game not found"}), 404
+        return jsonify(existing_game.status), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/get_players', methods=['GET'])
 def get_players_for_game():
     game_id = request.args['gameId']
