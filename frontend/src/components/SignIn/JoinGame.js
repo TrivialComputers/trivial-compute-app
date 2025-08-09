@@ -11,7 +11,6 @@ export default function JoinGame() {
 
     const joinExistingGame = (e) => {
         e.preventDefault();
-        // Include gameId in the data to be sent
         const dataToPost = { username, gameCode };
 
         fetch('/api/join_game', {
@@ -24,6 +23,8 @@ export default function JoinGame() {
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
+            sessionStorage.setItem("game_id", JSON.stringify(data.game_id));
+            sessionStorage.setItem("player_number", JSON.stringify(data.player_number));
             navigate(data.redirect_url);
         })
         .catch(error => console.error('Error posting data:', error));

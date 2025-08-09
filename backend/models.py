@@ -33,6 +33,7 @@ class Game(db.Model):
     player_count = db.Column(db.Integer, default=0)
     status = db.Column(db.String, default=STATUS.CREATED)
     players = db.relationship('Player', backref='game', lazy=True)
+    turn_count = db.Column(db.Integer, default=0)
 
     def to_json(self):
         return {
@@ -41,7 +42,8 @@ class Game(db.Model):
             'date': self.date.isoformat(),
             'playerCount': self.player_count,
             'status': self.status,
-            'players': [player.to_json() for player in self.players]
+            'players': [player.to_json() for player in self.players],
+            'turnCount': self.turn_count
         }
 
 class Player(db.Model):
@@ -52,6 +54,7 @@ class Player(db.Model):
     host = db.Column(db.Boolean, nullable=False, default=False)
     game_id = db.Column(db.Integer, ForeignKey('game.id'), nullable=False)
     position = db.Column(db.Integer, nullable=False)
+    number = db.Column(db.Integer, nullable=False)
 
     def to_json(self):
         return {
@@ -59,5 +62,6 @@ class Player(db.Model):
             'username': self.username,
             'host': self.host,
             'gameId': self.game_id,
-            'position': self.position
+            'position': self.position,
+            'number': self.number
         }

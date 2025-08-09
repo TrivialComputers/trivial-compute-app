@@ -24,6 +24,8 @@ export default function NewGame() {
         .then(data => {
             alert("Game Code = " + data.game_code)
             console.log('Success:', data);
+            sessionStorage.setItem("game_id", JSON.stringify(data.game_id));
+            sessionStorage.setItem("player_number", JSON.stringify(data.player_number));
             navigate(data.redirect_url); 
         })
         .catch(error => console.error('Error posting data:', error));

@@ -4,6 +4,7 @@ from flask import Flask, jsonify, request
 import os
 from datetime import datetime
 import random
+import json
 
 flask_start_time = datetime.now()
 
@@ -23,7 +24,8 @@ def create_game():
         username=username,
         host=True,
         game_id=new_game.id,
-        position=4
+        position=4,
+        number=new_game.player_count - 1
     )
 
     try:
@@ -31,8 +33,8 @@ def create_game():
         db.session.add(new_game)
         db.session.add(new_player)
         db.session.commit()
-        redirect_url = f'/editor'
-        return jsonify({'status': 'success', 'redirect_url': redirect_url, 'game_code': new_game.game_code}), 201
+        redirect_url = f'/game/{new_game.id}'
+        return jsonify({'status': 'success', 'redirect_url': redirect_url, 'game_code': new_game.game_code, 'game_id': new_game.id, 'player_number': new_player.number}), 201
     except Exception as e:
         return jsonify({"message": str(e)}), 400
 
@@ -43,7 +45,7 @@ def get_game_state():
         existing_game = Game.query.filter_by(id=game_id).first()
         if not existing_game:
             return jsonify({"error": "Game not found"}), 404
-        return jsonify(existing_game.status), 201
+        return jsonify(existing_game.players), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -55,9 +57,17 @@ def get_players_for_game():
         existing_game = Game.query.filter_by(id=game_id).first()
         if not existing_game:
             return jsonify({"error": "Game not found"}), 404
-        for player in existing_game.players:
-            playerNameList.append(player.username)
-        return jsonify(playerNameList), 201
+       
+        player_positions = {
+            "names": [
+                {"name": p.username, "position": p.position, "chips": []}
+                for p in existing_game.players
+            ]
+        }
+        # players = []
+        # for player in player_positions:
+        #     players += {"names": [player.u, player.position]}
+        return jsonify(player_positions), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 @app.route('/api/join_game', methods=['POST'])
@@ -71,14 +81,6 @@ def create_player_join_game():
         existing_game = Game.query.filter_by(game_code=game_code).first()
         if not existing_game:
             return jsonify({"error": "Game not found"}), 404
-        
-        new_player = Player(
-            username=username,
-            host=False,
-            game_id=existing_game.id,
-            position=0
-        )
-        
         if existing_game.player_count >= 4:
             return jsonify({"error": "Game is full"}), 400
         if existing_game.status != Game.STATUS.CREATED:
@@ -86,12 +88,25 @@ def create_player_join_game():
         for player in existing_game.players:
             if player.username == username:
                 return jsonify({"error": "Username already taken"}), 400
-        existing_game.players.append(new_player)
+            
         existing_game.player_count += 1
+
+        hqPositions = [4, 36, 44, 76]
+        
+        new_player = Player(
+            username=username,
+            host=False,
+            game_id=existing_game.id,
+            position=hqPositions[existing_game.player_count - 1],
+            number=existing_game.player_count - 1
+        )
+        
+        existing_game.players.append(new_player)
+        
         db.session.add(new_player)
         db.session.commit()
         redirect_url = f'/game/{existing_game.id}'
-        return jsonify({'status': 'success', 'redirect_url': redirect_url}), 201
+        return jsonify({'status': 'success', 'game_id': existing_game.id, 'position': new_player.position, 'player_number': new_player.number, 'redirect_url': redirect_url}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -152,9 +167,16 @@ def validate_move():
     source = data.get('sourceIndex')
     dest = data.get('destIndex')
     diceRoll = int(data.get("dice"))
+    playerNumber = int(data.get("playerNumber"))
+    gameId = int(data.get("gameId"))
 
     if source is None or dest is None:
         return jsonify({"error": "Missing sourceIndex or destIndex"}), 400
+    
+    existing_game = Game.query.filter_by(id=gameId).first()
+
+    if existing_game.turn_count % existing_game.player_count != playerNumber:
+        return jsonify({"error": "Not your turn"}), 400
 
     try:
         source = int(source)
@@ -166,14 +188,15 @@ def validate_move():
                 return jsonify({"error": "No player found at source position"}), 404
 
             if Player.query.filter_by(position=dest).first():
-                return jsonify({"error": "Player already in destination position"}), 409
+                return jsonify({"error": "Player already in destination position"}), 400
 
             player.position = dest
-            db.session.commit()
 
+            existing_game.turn_count += 1
+            db.session.commit()
             return jsonify({"message": "Moved successfully"}), 201
         else:
-            return jsonify({"message": "Invalid move"})
+            return jsonify({"error": "Invalid move"}), 400
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

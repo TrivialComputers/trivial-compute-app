@@ -9,6 +9,7 @@ const BOARD_SIZE = 9;
 const CATEGORIES = ['History', 'Science', 'Arts', 'Sports'];
 const COLORS = ['#e74c3c', '#3498db', '#9b59b6', '#2ecc71'];
 
+
 const generateBoard = () => {
   const total = 81;
   const board = Array(total).fill(null);
@@ -40,42 +41,72 @@ function App() {
   const [question, setQuestion] = useState(null);
 
   useEffect(() => {
-    const names = [];
-    const gameId = window.location.pathname.split('/').filter(Boolean).pop();
-
-    fetch(`/api/get_players?gameId=${gameId}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(res => res.json())
-      .then(data => {
-        names.push(...data);
-        console.log(names);
+    const fetchData = () => {
+      fetch(`/api/get_players?gameId=${JSON.parse(sessionStorage.getItem("game_id"))}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
-      .catch(err => console.error('Error fetching players:', err));
-    
-    names.push({ name: "testUser", position: 4, chips: [] })
-    setPlayers(names);
+        .then(res => res.json())
+        .then(data => {
+          setPlayers(prevPlayers => {
+            const playerMap = new Map(prevPlayers.map(p => [p.name, p]));
+            data.names.forEach(newPlayer => {
+              playerMap.set(newPlayer.name, newPlayer);
+            });
+            return Array.from(playerMap.values());
+          });
+        })
+        .catch(err => console.error('Error fetching players:', err));
+    };
+
+    fetchData();
+    const intervalId = setInterval(fetchData, 1000);
+
+    return () => clearInterval(intervalId);
   }, [board]);
 
   const rollDice = () => setDice(Math.floor(Math.random() * 6) + 1);
 
-  const movePlayer = (destIndex) => {
-    const updated = [...players];
-    const sourceIndex = updated[currentPlayer].position;
-    updated[currentPlayer].position = destIndex;
-    setPlayers(updated);
+  // useEffect(() => {
+  //   const fetchData = () => {
+  //     fetch(`/api/get_players?gameId=${JSON.parse(sessionStorage.getItem("game_id"))}`)
+  //       .then((res) => res.json())
+  //       .then((data) => setPlayers(data))
+  //       .catch((err) => console.error("Error fetching players:", err));
+  //   };
 
-    const dataToPost = { sourceIndex, destIndex, dice };
+  //   fetchData();
+
+  //   const intervalId = setInterval(fetchData, 1000);
+
+  //   return () => clearInterval(intervalId);
+  // }, []);
+
+  const movePlayer = (destIndex) => {
+    const gameId = JSON.parse(sessionStorage.getItem("game_id"));
+    const playerNumber = JSON.parse(sessionStorage.getItem("player_number"));
+
+    const updated = [...players];
+    const sourceIndex = updated[playerNumber].position;
+
+    const dataToPost = { sourceIndex, destIndex, dice, playerNumber, gameId };
 
     fetch('/api/move', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dataToPost),
-    });
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.status === 201) {
+              updated[playerNumber].position = destIndex;
+              setPlayers(updated);
+        } else {
+          console.log("Error:", data.error);
+        }
+      })
+      .catch((err) => console.error("Fetch error:", err));
     
     const cell = board[destIndex];
     if (cell?.category !== undefined) {
@@ -100,9 +131,8 @@ function App() {
       <header>
         <h1>Trivial Compute</h1>
         <nav>
-          <Link to="/">Sign In</Link>
+          <Link to="/">Home</Link>
           <Link to="/editor">Question Editor</Link>
-          <Link to="/yourGame">Game</Link>
         </nav>
       </header>
       <Board board={board} players={players} colors={COLORS} onCellClick={movePlayer} />
