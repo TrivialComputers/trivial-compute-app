@@ -24,7 +24,7 @@ def create_game():
         username=username,
         host=True,
         game_id=new_game.id,
-        position=4,
+        position=40,
         number=new_game.player_count - 1
     )
 
@@ -81,6 +81,8 @@ def create_player_join_game():
         existing_game = Game.query.filter_by(game_code=game_code).first()
         if not existing_game:
             return jsonify({"error": "Game not found"}), 404
+        if existing_game.status != Game.STATUS.CREATED:
+            return jsonify({"error": "Game already started"}), 404
         if existing_game.player_count >= 4:
             return jsonify({"error": "Game is full"}), 400
         if existing_game.status != Game.STATUS.CREATED:
@@ -97,7 +99,7 @@ def create_player_join_game():
             username=username,
             host=False,
             game_id=existing_game.id,
-            position=hqPositions[existing_game.player_count - 1],
+            position=40,
             number=existing_game.player_count - 1
         )
         
@@ -174,6 +176,11 @@ def validate_move():
         return jsonify({"error": "Missing sourceIndex or destIndex"}), 400
     
     existing_game = Game.query.filter_by(id=gameId).first()
+    if existing_game.status == Game.STATUS.COMPLETED:
+        return jsonify({"error": "Game over"}), 400
+    
+    if existing_game.status == Game.STATUS.CREATED:
+        existing_game.status = Game.STATUS.IN_PROGRESS
 
     if existing_game.turn_count % existing_game.player_count != playerNumber:
         return jsonify({"error": "Not your turn"}), 400
@@ -183,16 +190,12 @@ def validate_move():
         dest = int(dest)
 
         if (move_validate_helper(source, dest, diceRoll) == True):            
-            player = Player.query.filter_by(position=source).first()
+            player = Player.query.filter_by(number=playerNumber).first()
             if not player:
                 return jsonify({"error": "No player found at source position"}), 404
 
-            if Player.query.filter_by(position=dest).first():
-                return jsonify({"error": "Player already in destination position"}), 400
-
             player.position = dest
 
-            existing_game.turn_count += 1
             db.session.commit()
             return jsonify({"message": "Moved successfully"}), 201
         else:
@@ -203,16 +206,39 @@ def validate_move():
 
 @app.route('/api/question', methods=['GET'])
 def get_question_by_category():
+    game_id = request.args['gameId']
+    existing_game = Game.query.filter_by(id=game_id).first()
     category = request.args['category']
     try:
         questionBank = Question.query.filter_by(category=category).all()
         
         if questionBank:
             question = random.choice(questionBank)
+            existing_game.current_question_id = question.id
             json_question = question.to_json()
             return jsonify({"question": json_question}), 201
         else:
             return jsonify({"error": f"No questions found for category={category}"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/answer', methods=['POST'])
+def process_answer():
+    data = request.get_json()
+    answer = data.get('playerAnswer')
+    playerNumber = int(data.get("playerNumber"))
+    question = data.get("playerQuestion")
+    gameId = int(data.get("gameId"))
+    try:
+        existing_game = Game.query.filter_by(id=gameId).first()
+        current_question = Question.query.filter_by(question=question).first()
+
+        if current_question.answer == answer:
+            return jsonify({"result": "correct"}), 201
+        else:
+            existing_game.turn_count += 1
+            db.session.commit()
+            return jsonify({"result": "incorrect"}), 400        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

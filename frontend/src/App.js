@@ -68,21 +68,6 @@ function App() {
 
   const rollDice = () => setDice(Math.floor(Math.random() * 6) + 1);
 
-  // useEffect(() => {
-  //   const fetchData = () => {
-  //     fetch(`/api/get_players?gameId=${JSON.parse(sessionStorage.getItem("game_id"))}`)
-  //       .then((res) => res.json())
-  //       .then((data) => setPlayers(data))
-  //       .catch((err) => console.error("Error fetching players:", err));
-  //   };
-
-  //   fetchData();
-
-  //   const intervalId = setInterval(fetchData, 1000);
-
-  //   return () => clearInterval(intervalId);
-  // }, []);
-
   const movePlayer = (destIndex) => {
     const gameId = JSON.parse(sessionStorage.getItem("game_id"));
     const playerNumber = JSON.parse(sessionStorage.getItem("player_number"));
@@ -102,28 +87,41 @@ function App() {
         if (res.status === 201) {
               updated[playerNumber].position = destIndex;
               setPlayers(updated);
+              const cell = board[destIndex];
+              if (cell?.category !== undefined) {
+                fetch(`/api/question?category=${CATEGORIES[cell.category]}&gameId=${gameId}`)
+                  .then(res => res.json())
+                  .then(q => { setQuestion(q); setShowQuestion(true); });
+              }
         } else {
           console.log("Error:", data.error);
         }
       })
       .catch((err) => console.error("Fetch error:", err));
-    
-    const cell = board[destIndex];
-    if (cell?.category !== undefined) {
-      fetch(`/api/question?category=${CATEGORIES[cell.category]}`)
-        .then(res => res.json())
-        .then(q => { setQuestion(q); setShowQuestion(true); });
-    }
   };
 
   const handleAnswer = (answer) => {
     setShowQuestion(false);
-    const isCorrect = answer.trim().toLowerCase() === question.question.answer.trim().toLowerCase();
-    if (isCorrect) {
-      alert("Correct!");
-    } else {
-      alert("Incorrect!");
-    }
+    const playerAnswer = answer.trim().toLowerCase();
+    const gameId = JSON.parse(sessionStorage.getItem("game_id"));
+    const playerNumber = JSON.parse(sessionStorage.getItem("player_number"));
+    const playerQuestion = question.question.question
+
+    const dataToPost = {playerAnswer, gameId, playerNumber, playerQuestion}
+    fetch('/api/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dataToPost),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.status === 201) {
+          console.log("Correct!")
+        } else {
+          console.log("Error:", data.error);
+        }
+      })
+      .catch((err) => console.error("Fetch error:", err));
   };
 
   return (
