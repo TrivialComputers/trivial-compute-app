@@ -70,9 +70,10 @@ export default function QuestionForm({ onSubmitSuccess }) {
               label="Category"
               onChange={e => setCategory(e.target.value)}
             >
-              <MenuItem value="General Knowledge">General Knowledge</MenuItem>
+              <MenuItem value="Arts">Arts</MenuItem>
               <MenuItem value="Science">Science</MenuItem>
               <MenuItem value="History">History</MenuItem>
+              <MenuItem value="Sports">Sports</MenuItem>
             </Select>
           </FormControl>
         </Box>

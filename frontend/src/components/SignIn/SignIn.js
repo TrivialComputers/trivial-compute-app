@@ -9,6 +9,7 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import NewGame from './NewGame';
 import JoinGame from './JoinGame';
+import QuestionEditor from '../QuestionEditor/QuestionEditor';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -64,6 +65,7 @@ export default function SignIn() {
         >
           <Tab label="New Game" {...a11yProps(0)} />
           <Tab label="Join Game" {...a11yProps(1)} />
+          <Tab label="Question Editor" {...a11yProps(2)} />
         </Tabs>
       </AppBar>
       <TabPanel value={value} index={0} dir={theme.direction}>
@@ -71,6 +73,9 @@ export default function SignIn() {
       </TabPanel>
       <TabPanel value={value} index={1} dir={theme.direction}>
         <JoinGame />
+      </TabPanel>
+      <TabPanel value={value} index={2} dir={theme.direction}>
+        <QuestionEditor />
       </TabPanel>
     </Container>
   );
