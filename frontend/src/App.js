@@ -91,39 +91,41 @@ useEffect(() => {
   };
 
   const movePlayer = (destIndex) => {
-    const gameId = JSON.parse(sessionStorage.getItem("game_id"));
-    const playerNumber = JSON.parse(sessionStorage.getItem("player_number"));
+    if (Number.isInteger(dice) && dice >= 1 && dice <= 6) {
+      const gameId = JSON.parse(sessionStorage.getItem("game_id"));
+      const playerNumber = JSON.parse(sessionStorage.getItem("player_number"));
 
-    const updated = [...players];
-    const sourceIndex = updated[playerNumber].position;
+      const updated = [...players];
+      const sourceIndex = updated[playerNumber].position;
 
-    const dataToPost = { sourceIndex, destIndex, dice, playerNumber, gameId };
+      const dataToPost = { sourceIndex, destIndex, dice, playerNumber, gameId };
 
-    fetch('/api/move', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dataToPost),
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (res.status === 201) {
-              updated[playerNumber].position = destIndex;
-              setPlayers(updated);
-              const cell = board[destIndex];
-              if ([0, 8, 72, 80].includes(destIndex)) {
-                alert("Roll again!")
-                setCanRoll(true);
-              }
-              if (cell?.category !== undefined) {
-                fetch(`/api/question?category=${CATEGORIES[cell.category]}&gameId=${gameId}`)
-                  .then(res => res.json())
-                  .then(q => { setQuestion(q); setShowQuestion(true); });
-              }
-        } else {
-          console.log("Error:", data.error);
-        }
+      fetch('/api/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToPost),
       })
-      .catch((err) => console.error("Fetch error:", err));
+        .then(async (res) => {
+          const data = await res.json();
+          if (res.status === 201) {
+                updated[playerNumber].position = destIndex;
+                setPlayers(updated);
+                const cell = board[destIndex];
+                if ([0, 8, 72, 80].includes(destIndex)) {
+                  alert("Roll again!")
+                  setCanRoll(true);
+                }
+                if (cell?.category !== undefined) {
+                  fetch(`/api/question?category=${CATEGORIES[cell.category]}&gameId=${gameId}`)
+                    .then(res => res.json())
+                    .then(q => { setQuestion(q); setShowQuestion(true); });
+                }
+          } else {
+            console.log("Error:", data.error);
+          }
+        })
+        .catch((err) => console.error("Fetch error:", err));
+      }
   };
 
   const handleAnswer = (answer) => {
