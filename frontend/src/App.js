@@ -44,7 +44,7 @@ function App() {
 
 useEffect(() => {
   const fetchData = () => {
-    fetch(`/api/get_players?gameId=${JSON.parse(sessionStorage.getItem("game_id"))}`, {
+    fetch(`/api/sync?gameId=${JSON.parse(sessionStorage.getItem("game_id"))}`, {
       headers: { 'Content-Type': 'application/json' },
     })
       .then(res => res.json())

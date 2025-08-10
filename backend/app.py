@@ -49,7 +49,7 @@ def get_game_state():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/get_players', methods=['GET'])
+@app.route('/api/sync', methods=['GET'])
 def get_players_for_game():
     game_id = request.args['gameId']
     try:
@@ -151,7 +151,7 @@ def move_validate_helper(source, dest, diceRoll):
 
     manhattan_distance = abs(dest_row - source_row) + abs(dest_col - source_col)
 
-    if dest not in [10, 11, 12, 14, 15, 16, 19, 20, 21, 23, 24, 25, 28, 29, 30, 31, 32, 33, 46, 47, 48, 50, 51, 52, 55, 56, 57, 59, 60, 61, 64, 65, 66, 68, 69, 70] and manhattan_distance == diceRoll:
+    if dest not in [10, 11, 12, 14, 15, 16, 19, 20, 21, 23, 24, 25, 28, 29, 30, 31, 32, 33, 46, 47, 48, 50, 51, 52, 55, 56, 57, 59, 60, 61, 64, 65, 66, 68, 69, 70] and manhattan_distance <= diceRoll:
         return True
     else:
         return False
