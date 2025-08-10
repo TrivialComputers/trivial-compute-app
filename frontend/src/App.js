@@ -130,7 +130,7 @@ useEffect(() => {
 
   const handleAnswer = (answer) => {
     setShowQuestion(false);
-    const playerAnswer = answer.trim().toLowerCase();
+    const playerAnswer = answer.toLowerCase();
     const gameId = JSON.parse(sessionStorage.getItem("game_id"));
     const playerNumber = JSON.parse(sessionStorage.getItem("player_number"));
     const playerQuestion = question.question.question
