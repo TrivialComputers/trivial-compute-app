@@ -52,22 +52,20 @@ def get_game_state():
 @app.route('/api/get_players', methods=['GET'])
 def get_players_for_game():
     game_id = request.args['gameId']
-    playerNameList = []
     try:
         existing_game = Game.query.filter_by(id=game_id).first()
         if not existing_game:
             return jsonify({"error": "Game not found"}), 404
        
-        player_positions = {
-            "names": [
-                {"name": p.username, "position": p.position, "chips": []}
-                for p in existing_game.players
-            ]
-        }
-        # players = []
-        # for player in player_positions:
-        #     players += {"names": [player.u, player.position]}
-        return jsonify(player_positions), 201
+        player_positions = [
+            {"name": p.username, "position": p.position, "chips": []}
+            for p in existing_game.players
+        ]
+        
+        return jsonify({
+            "turn": existing_game.turn_count % existing_game.player_count,
+            "names": player_positions
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 @app.route('/api/join_game', methods=['POST'])

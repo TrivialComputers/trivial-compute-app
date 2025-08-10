@@ -17,6 +17,7 @@ const generateBoard = () => {
   const centerPosition = 40;
   const hqPositions = [4, 36, 44, 76];
   const excluded = [0, 4, 8, 36, 44, 72, 76, 80];
+  const rollAgain = [0, 8, 72, 80];
   const qPositions = Array.from({ length: 81 }, (_, i) => i + 1)
   .filter(n => !excluded.includes(n));
   board[centerPosition] = { type: 'center' };
@@ -35,38 +36,59 @@ const generateBoard = () => {
 function App() {
   const [board] = useState(generateBoard());
   const [players, setPlayers] = useState([]);
-  const [currentPlayer, setCurrentPlayer] = useState(0);
-  const [dice, setDice] = useState(1);
+  const [currentPlayer, setCurrentPlayer] = useState(false);
+  const [dice, setDice] = useState(null);
+  const [canRoll, setCanRoll] = useState(true);
   const [showQuestion, setShowQuestion] = useState(false);
   const [question, setQuestion] = useState(null);
 
-  useEffect(() => {
-    const fetchData = () => {
-      fetch(`/api/get_players?gameId=${JSON.parse(sessionStorage.getItem("game_id"))}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-        .then(res => res.json())
-        .then(data => {
-          setPlayers(prevPlayers => {
-            const playerMap = new Map(prevPlayers.map(p => [p.name, p]));
-            data.names.forEach(newPlayer => {
-              playerMap.set(newPlayer.name, newPlayer);
-            });
-            return Array.from(playerMap.values());
+useEffect(() => {
+  const fetchData = () => {
+    fetch(`/api/get_players?gameId=${JSON.parse(sessionStorage.getItem("game_id"))}`, {
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.turn === JSON.parse(sessionStorage.getItem("player_number"))) {
+          setCurrentPlayer(prev => {
+            if (!prev) {
+              alert("Your turn!");
+              setCanRoll(true);
+              return true;
+            }
+            return prev;
           });
-        })
-        .catch(err => console.error('Error fetching players:', err));
-    };
+        }
+        setPlayers(prevPlayers => {
+          const playerMap = new Map(prevPlayers.map(p => [p.name, p]));
+          data.names.forEach(newPlayer => {
+            playerMap.set(newPlayer.name, newPlayer);
+          });
+          return Array.from(playerMap.values());
+        });
+      })
+      .catch(err => console.error('Error fetching players:', err));
+  };
 
-    fetchData();
-    const intervalId = setInterval(fetchData, 1000);
+  fetchData();
+  const intervalId = setInterval(fetchData, 1000);
 
-    return () => clearInterval(intervalId);
-  }, [board]);
+  return () => clearInterval(intervalId);
+}, [board, currentPlayer]);
 
-  const rollDice = () => setDice(Math.floor(Math.random() * 6) + 1);
+  const rollDice = () => {
+    if (!canRoll) {
+      alert("You can't roll yet!");
+      return;
+    }
+
+    setDice(Math.floor(Math.random() * 6) + 1);
+    setCanRoll(false);
+  };
+
+  const allowRoll = () => {
+    setCanRoll(true);
+  };
 
   const movePlayer = (destIndex) => {
     const gameId = JSON.parse(sessionStorage.getItem("game_id"));
@@ -88,6 +110,10 @@ function App() {
               updated[playerNumber].position = destIndex;
               setPlayers(updated);
               const cell = board[destIndex];
+              if ([0, 8, 72, 80].includes(destIndex)) {
+                alert("Roll again!")
+                setCanRoll(true);
+              }
               if (cell?.category !== undefined) {
                 fetch(`/api/question?category=${CATEGORIES[cell.category]}&gameId=${gameId}`)
                   .then(res => res.json())
@@ -116,8 +142,10 @@ function App() {
       .then(async (res) => {
         const data = await res.json();
         if (res.status === 201) {
-          console.log("Correct!")
+          alert("Correct!")
+          setCanRoll(true);
         } else {
+          alert("Incorrect!")
           console.log("Error:", data.error);
         }
       })
