@@ -160,7 +160,6 @@ useEffect(() => {
         <h1>Trivial Compute</h1>
         <nav>
           <Link to="/">Home</Link>
-          <Link to="/editor">Question Editor</Link>
         </nav>
       </header>
       <Board board={board} players={players} colors={COLORS} onCellClick={movePlayer} />
