@@ -9,7 +9,7 @@ const Board = ({ board, players, colors, onCellClick }) => {
       [{ type: 'question', category: 3 }, null, null, null, { type: 'question', category: 0 }, null, null, null, { type: 'question', category: 1 }],
       [{ type: 'question', category: 2 }, null, null, null, { type: 'question', category: 3 }, null, null, null, { type: 'question', category: 0 }],
       [{ type: 'question', category: 1 }, null, null, null, { type: 'question', category: 2 }, null, null, null, { type: 'question', category: 3 }],
-      [{ type: 'hq', category: 0 }, { type: 'question', category: 1 }, { type: 'question', category: 2 }, { type: 'question', category: 3 }, { type: 'center' }, { type: 'question', category: 0 }, { type: 'question', category: 1 }, { type: 'question', category: 2 }, { type: 'hq', category: 3 }],
+      [{ type: 'hq', category: 2 }, { type: 'question', category: 1 }, { type: 'question', category: 2 }, { type: 'question', category: 3 }, { type: 'center' }, { type: 'question', category: 0 }, { type: 'question', category: 1 }, { type: 'question', category: 2 }, { type: 'hq', category: 1 }],
       [{ type: 'question', category: 0 }, null, null, null, { type: 'question', category: 1 }, null, null, null, { type: 'question', category: 2 }],
       [{ type: 'question', category: 3 }, null, null, null, { type: 'question', category: 0 }, null, null, null, { type: 'question', category: 1 }],
       [{ type: 'question', category: 2 }, null, null, null, { type: 'question', category: 3 }, null, null, null, { type: 'question', category: 0 }],
