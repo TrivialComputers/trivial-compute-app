@@ -247,7 +247,7 @@ def process_answer():
                     return jsonify({"result": "correct", "chip": new_chip.to_json()}), 201
                 except Exception as e:
                     return jsonify({"error": str(e)}), 500
-            return jsonify({"result": "correct"}), 201
+            return jsonify({"result": "correct", "chip": None}), 201
         else:
             existing_game.turn_count += 1
             db.session.commit()

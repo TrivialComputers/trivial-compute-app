@@ -58,6 +58,7 @@ class Chip(db.Model):
     def to_json(self):
         return {
             'id': self.id,
+            'category': self.category,
             'playerId': self.player_id
         }
 

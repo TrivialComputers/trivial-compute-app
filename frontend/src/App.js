@@ -4,6 +4,7 @@ import Board from './components/Game/Board';
 // import StatusBar from './components/Game/StatusBar';
 import QuestionModal from './components/Game/QuestionModal';
 import Dice from './components/Game/Dice';
+import ChipDisplay from './components/Game/ChipDisplay';
 
 const BOARD_SIZE = 9;
 const CATEGORIES = ['History', 'Science', 'Arts', 'Sports'];
@@ -41,6 +42,7 @@ function App() {
   const [canRoll, setCanRoll] = useState(true);
   const [showQuestion, setShowQuestion] = useState(false);
   const [question, setQuestion] = useState(null);
+  const [chips, setChips] = useState([]);
 
 useEffect(() => {
   const fetchData = () => {
@@ -146,6 +148,9 @@ useEffect(() => {
         if (res.status === 201) {
           alert("Correct!")
           setCanRoll(true);
+          if (data.chip) {
+            setChips((prevChips) => [...prevChips, data.chip]);
+          }
         } else {
           alert("Incorrect!")
           console.log("Error:", data.error);
@@ -165,6 +170,7 @@ useEffect(() => {
       <Board board={board} players={players} colors={COLORS} onCellClick={movePlayer} />
       <Dice dice={dice} onRoll={rollDice} />
       {showQuestion && <QuestionModal question={question} onAnswer={handleAnswer} />}
+      <ChipDisplay chips={chips} />
     </div>
   );
 }
