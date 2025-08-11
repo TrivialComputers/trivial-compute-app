@@ -43,6 +43,7 @@ function App() {
   const [showQuestion, setShowQuestion] = useState(false);
   const [question, setQuestion] = useState(null);
   const [chips, setChips] = useState([]);
+  const [home, setHome] = useState(true);
 
 useEffect(() => {
   const fetchData = () => {
@@ -51,23 +52,26 @@ useEffect(() => {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.turn === JSON.parse(sessionStorage.getItem("player_number"))) {
-          setCurrentPlayer(prev => {
-            if (!prev) {
-              alert("Your turn!");
-              setCanRoll(true);
-              return true;
-            }
-            return prev;
+        if (data.status === "COMPLETED") {
+          alert("Game over!");
+        }
+        else {
+          const isMyTurn = data.turn === JSON.parse(sessionStorage.getItem("player_number"));
+          if (isMyTurn && !currentPlayer) {
+            alert("Your turn!");
+            setCurrentPlayer(true)
+            setCanRoll(true);
+          } else if (isMyTurn) {
+            setCanRoll(true);
+          }
+          setPlayers(prevPlayers => {
+            const playerMap = new Map(prevPlayers.map(p => [p.name, p]));
+            data.names.forEach(newPlayer => {
+              playerMap.set(newPlayer.name, newPlayer);
+            });
+            return Array.from(playerMap.values());
           });
         }
-        setPlayers(prevPlayers => {
-          const playerMap = new Map(prevPlayers.map(p => [p.name, p]));
-          data.names.forEach(newPlayer => {
-            playerMap.set(newPlayer.name, newPlayer);
-          });
-          return Array.from(playerMap.values());
-        });
       })
       .catch(err => console.error('Error fetching players:', err));
   };
@@ -95,12 +99,13 @@ useEffect(() => {
   const movePlayer = (destIndex) => {
     if (Number.isInteger(dice) && dice >= 1 && dice <= 6) {
       const gameId = JSON.parse(sessionStorage.getItem("game_id"));
+      const playerName = JSON.parse(sessionStorage.getItem("player_name"));
       const playerNumber = JSON.parse(sessionStorage.getItem("player_number"));
 
       const updated = [...players];
       const sourceIndex = updated[playerNumber].position;
 
-      const dataToPost = { sourceIndex, destIndex, dice, playerNumber, gameId };
+      const dataToPost = { sourceIndex, destIndex, dice, playerName, gameId, playerNumber };
 
       fetch('/api/move', {
         method: 'POST',
@@ -113,9 +118,20 @@ useEffect(() => {
                 updated[playerNumber].position = destIndex;
                 setPlayers(updated);
                 const cell = board[destIndex];
+                setHome(false);
                 if ([0, 8, 72, 80].includes(destIndex)) {
                   alert("Roll again!")
                   setCanRoll(true);
+                }
+                if ([40].includes(destIndex)) {
+                  if (chips.length === 4) {
+                    setHome(true);
+                    fetch(`/api/question?category=${CATEGORIES[cell.category]}&gameId=${gameId}`)
+                    .then(res => res.json())
+                    .then(q => { setQuestion(q); setShowQuestion(true); });
+                    
+                    
+                  }
                 }
                 if (cell?.category !== undefined) {
                   fetch(`/api/question?category=${CATEGORIES[cell.category]}&gameId=${gameId}`)
@@ -147,12 +163,24 @@ useEffect(() => {
         const data = await res.json();
         if (res.status === 201) {
           alert("Correct!")
+          if (home) {
+            if (chips.length === 4) {
+            alert("You win!");
+            const dataForWin = {playerNumber, gameId}
+            fetch('/api/win', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(dataForWin),
+            })
+    }
+          }
           setCanRoll(true);
           if (data.chip) {
             setChips((prevChips) => [...prevChips, data.chip]);
           }
         } else {
           alert("Incorrect!")
+          setCurrentPlayer(false)
           console.log("Error:", data.error);
         }
       })
