@@ -1,4 +1,4 @@
-from models import Game, Player, Question
+from models import Game, Player, Question, Chip
 from config import app, db
 from flask import Flask, jsonify, request
 import os
@@ -25,6 +25,7 @@ def create_game():
         host=True,
         game_id=new_game.id,
         position=40,
+        chips=[],
         number=new_game.player_count - 1
     )
 
@@ -68,6 +69,7 @@ def get_players_for_game():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route('/api/join_game', methods=['POST'])
 def create_player_join_game():
     data = request.get_json()
@@ -98,6 +100,7 @@ def create_player_join_game():
             host=False,
             game_id=existing_game.id,
             position=40,
+            chips=[],
             number=existing_game.player_count - 1
         )
         
@@ -218,7 +221,7 @@ def get_question_by_category():
         else:
             return jsonify({"error": f"No questions found for category={category}"}), 404
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 500    
 
 @app.route('/api/answer', methods=['POST'])
 def process_answer():
@@ -232,6 +235,18 @@ def process_answer():
         current_question = Question.query.filter_by(question=question).first()
 
         if current_question.answer == answer:
+            player = Player.query.filter_by(number=playerNumber, game_id=gameId).first()
+            if player.position in [4, 36, 44, 76]:
+                try:
+                    new_chip = Chip(
+                        category=current_question.category,
+                        player_id=player.id
+                    )
+                    db.session.add(new_chip)
+                    db.session.commit()
+                    return jsonify({"result": "correct", "chip": new_chip.to_json()}), 201
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
             return jsonify({"result": "correct"}), 201
         else:
             existing_game.turn_count += 1

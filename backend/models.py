@@ -48,6 +48,19 @@ class Game(db.Model):
             'current_question_id': self.current_question_id
         }
 
+class Chip(db.Model):
+    __tablename__ = 'chip'
+
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String, nullable=False)  # Category of the chip
+    player_id = db.Column(db.Integer, ForeignKey('player.id'), nullable=False)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'playerId': self.player_id
+        }
+
 class Player(db.Model):
     __tablename__ = 'player'
 
@@ -55,6 +68,7 @@ class Player(db.Model):
     username = db.Column(db.String, unique=True, nullable=False)
     host = db.Column(db.Boolean, nullable=False, default=False)
     game_id = db.Column(db.Integer, ForeignKey('game.id'), nullable=False)
+    chips = db.relationship('Chip', backref='player', lazy=True)
     position = db.Column(db.Integer, nullable=False)
     number = db.Column(db.Integer, nullable=False)
 
@@ -65,5 +79,6 @@ class Player(db.Model):
             'host': self.host,
             'gameId': self.game_id,
             'position': self.position,
+            'chips': [chip.to_json() for chip in self.chips],
             'number': self.number
         }
